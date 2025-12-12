@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "AI Studio DOM Ripper",
+  "version": "2.2",
+  "description": "Click the toolbar icon to nuke old chat bubbles",
+  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Nuke Old Chats",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
