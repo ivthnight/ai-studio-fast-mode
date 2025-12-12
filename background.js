@@ -1,44 +1,80 @@
 chrome.action.onClicked.addListener((tab) => {
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    function: nukeInContext
+    function: toggleDomRipper
   });
 });
 
-function nukeInContext() {
-  console.log("DOM Ripper: Triggered from Toolbar!");
+function toggleDomRipper() {
+  // Select all turns
+  const allTurns = Array.from(document.querySelectorAll('ms-chat-turn'));
   
-  const turns = document.querySelectorAll('ms-chat-turn');
-  
-  if (turns.length === 0) {
-    alert("DOM Ripper: No chats found to nuke.");
+  if (allTurns.length === 0) {
+    showToast("⚠️ No chat found to manage.");
     return;
   }
 
-  // Keep the last 10 turns (User + Model) visible
-  const keepCount = 10;
-  let hiddenCount = 0;
+  // Check how many are currently hidden
+  const hiddenTurns = allTurns.filter(t => t.style.display === 'none');
 
-  for (let i = 0; i < turns.length - keepCount; i++) {
-    turns[i].style.display = 'none';
-    hiddenCount++;
+  // LOGIC: RESTORE vs NUKE Chats
+  if (hiddenTurns.length > 0) {
+    // SCENARIO A: STUFF IS HIDDEN -> RESTORE IT
+    hiddenTurns.forEach(t => t.style.display = '');
+    showToast(`♻️ Restored ${hiddenTurns.length} messages to view.`);
+    
+  } else {
+    // SCENARIO B: NOTHING HIDDEN -> NUKE IT
+    const keepCount = 16;
+    let nukeCount = 0;
+
+    // Loop through everything except the last 16
+    for (let i = 0; i < allTurns.length - keepCount; i++) {
+      allTurns[i].style.display = 'none';
+      nukeCount++;
+    }
+
+    // Hint browser to clean up layout memory
+    if (window.gc) window.gc();
+
+    if (nukeCount > 0) {
+      showToast(`☢️ Nuked ${nukeCount} messages. Fast mode ON.`);
+    } else {
+      showToast("⚠️ Chat too short to nuke.");
+    }
   }
 
-  // Force garbage collection if the browser allows it
-  if (window.gc) window.gc();
+  function showToast(message) {
+    const existing = document.getElementById('dom-ripper-toast');
+    if (existing) existing.remove();
 
-  // Show a quick visual confirmation
-  const toast = document.createElement('div');
-  toast.textContent = `☢️ Nuked ${hiddenCount} old messages`;
-  toast.style.cssText = `
-      position: fixed; bottom: 80px; right: 20px;
-      background: #333; color: #fff; padding: 10px 20px;
-      border-radius: 8px; z-index: 10000; font-family: monospace;
-      transition: opacity 0.5s;
-  `;
-  document.body.appendChild(toast);
-  setTimeout(() => {
-      toast.style.opacity = '0';
-      setTimeout(() => toast.remove(), 500);
-  }, 2000);
+    const toast = document.createElement('div');
+    toast.id = 'dom-ripper-toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed; 
+        bottom: 80px; 
+        right: 20px;
+        background: #222;
+        color: #fff;
+        padding: 12px 24px;
+        border-radius: 8px;
+        z-index: 999999;
+        font-family: system-ui, sans-serif;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        opacity: 0;
+        transition: opacity 0.3s ease-in-out;
+        pointer-events: none;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => toast.style.opacity = '1');
+    
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
 }
